@@ -96,7 +96,7 @@ struct AdminView: View {
             
             VStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Host/DNS *")
+                    Text("Host/DNS/M3U *")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
                     
