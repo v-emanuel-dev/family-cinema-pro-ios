@@ -173,7 +173,7 @@ struct StreamingView: View {
                 .font(.title2)
                 .foregroundColor(.primaryColor)
             
-            Text("Epic Cinema Pro")
+            Text("Family Cinema Pro")
                 .font(.headline)
                 .fontWeight(.bold)
                 .foregroundColor(.white)

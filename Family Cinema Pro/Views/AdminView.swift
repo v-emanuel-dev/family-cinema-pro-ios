@@ -418,7 +418,7 @@ struct AdminView: View {
         saveLocalValues()
         
         let config = """
-        Configuração Epic Cinema Pro
+        Configuração Family Cinema Pro
         ===========================
         Host/DNS: \(localHost)
         Usuário: \(localUsername)
