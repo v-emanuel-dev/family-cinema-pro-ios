@@ -11,12 +11,14 @@ struct CustomTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .foregroundColor(.white)
-            .padding()
+            .padding(12) // Padding adequado
             .background(Color.surfaceDark)
-            .cornerRadius(12)
+            .cornerRadius(8) // Menor radius
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.primaryColor.opacity(0.3), lineWidth: 1)
             )
+            .autocorrectionDisabled() // IMPORTANTE: Desabilitar autocorreção
+            .textInputAutocapitalization(.never) // IMPORTANTE: Sem capitalização
     }
 }

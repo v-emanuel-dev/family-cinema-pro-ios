@@ -2,46 +2,37 @@
 //  AdminView.swift
 //  Family Cinema Pro
 //
-//  Tela de configurações administrativas
+//  VERSÃO COMPLETA FINAL
 //
 
 import SwiftUI
 
 struct AdminView: View {
-    // MARK: - Properties
     @ObservedObject var configService: ConfigService
     @Environment(\.dismiss) private var dismiss
     
-    // MARK: - State Variables
-    @State private var showingAuthSheet = true
-    @State private var isAuthenticated = false
-    @State private var username = ""
-    @State private var password = ""
+    @State private var localHost = ""
+    @State private var localUsername = ""
+    @State private var localPassword = ""
+    @State private var localAlternativeDns = ""
+    @State private var localPort = ""
+    @State private var localUpdateInterval = ""
+    @State private var localPlaylistFormat = "ts"
+    @State private var localAutoReconnect = true
+    @State private var localHardwareAcceleration = true
+    
     @State private var isTestingConnection = false
     @State private var testResult: String?
     @State private var showingAlert = false
     @State private var alertMessage = ""
-    
-    // MARK: - Admin Credentials
-    private let adminUsername = "admin"
-    private let adminPassword = "admin"
+    @State private var isSaving = false
     
     var body: some View {
         ZStack {
-            // Background
-            Color.backgroundDark
-                .ignoresSafeArea()
+            Color.backgroundDark.ignoresSafeArea()
             
-            // Conteúdo principal (SEM VStack que cria espaço)
-            Group {
-                if isAuthenticated {
-                    adminConfigView
-                } else {
-                    authenticationView
-                }
-            }
+            adminConfigView
             
-            // Botão fechar sobreposto (posição absoluta)
             VStack {
                 HStack {
                     Spacer()
@@ -59,8 +50,11 @@ struct AdminView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 60)
                 }
-                Spacer() // Manter botão no topo
+                Spacer()
             }
+        }
+        .onAppear {
+            loadLocalValues()
         }
         .alert("Resultado", isPresented: $showingAlert) {
             Button("OK") { }
@@ -69,123 +63,72 @@ struct AdminView: View {
         }
     }
     
-    // MARK: - Authentication View (MUITO SUBIDA)
-    private var authenticationView: some View {
-        ScrollView {
-            VStack(spacing: 8) { // Spacing mínimo
-                // Spacer pequeno para botão fechar
-                Spacer().frame(height: 35) // REDUZIDO de 120 para 80
-                
-                // Logo e título (compactos)
-                VStack(spacing: 6) { // REDUZIDO de 8 para 6
-                    Text("ACESSO ADMINISTRATIVO")
-                        .font(.title3) // REDUZIDO de .title2
-                        .fontWeight(.bold)
-                        .foregroundColor(.primaryColor)
-                    
-                    Text("Área restrita para administradores")
-                        .font(.caption) // REDUZIDO de .subheadline
-                        .foregroundColor(.textSecondary)
-                }
-                
-                // Formulário de login (compacto)
-                VStack(spacing: 12) { // REDUZIDO de 16 para 12
-                    VStack(alignment: .leading, spacing: 6) { // REDUZIDO de 8 para 6
-                        Text("CREDENCIAIS DE ACESSO")
-                            .font(.caption2) // REDUZIDO
-                            .fontWeight(.bold)
-                            .foregroundColor(.primaryColor)
-                        
-                        TextField("Usuário Administrador", text: $username)
-                            .textFieldStyle(CustomTextFieldStyle())
-                        
-                        SecureField("Senha de Administrador", text: $password)
-                            .textFieldStyle(CustomTextFieldStyle())
-                    }
-                    
-                    Button(action: authenticateUser) {
-                        Text("ACESSAR ADMINISTRAÇÃO")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                }
-                .padding(18) // REDUZIDO de 24 para 18
-                .modifier(CardBackground())
-                .padding(.horizontal)
-                
-                Spacer() // Espaço restante
-            }
-        }
-        .background(Color.backgroundDark)
-    }
-    
-    // MARK: - Admin Configuration View (OTIMIZADA)
     private var adminConfigView: some View {
         ScrollView {
-            VStack(spacing: 16) { // Espaçamento reduzido
-                // Spacer mínimo para o botão fechar
-                Spacer().frame(height: 35) // REDUZIDO de 100 para 80
+            VStack(spacing: 16) {
+                Spacer().frame(height: 35)
                 
-                // Título (compacto)
                 HStack {
                     Text("CONFIGURAÇÕES PRINCIPAIS")
-                        .font(.headline) // REDUZIDO de .title3
+                        .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primaryColor)
                     Spacer()
                 }
                 .padding(.horizontal)
                 
-                // Configurações obrigatórias
                 requiredConfigSection
-                
-                // Configurações avançadas
                 advancedConfigSection
-                
-                // Exemplo de configuração
                 exampleConfigSection
                 
-                // Spacer final mínimo
                 Spacer().frame(height: 20)
             }
         }
         .background(Color.backgroundDark)
     }
     
-    // MARK: - Required Config Section (SUPER COMPACTA)
     private var requiredConfigSection: some View {
-        VStack(alignment: .leading, spacing: 8) { // REDUZIDO de 12 para 8
-            Text("Campos Obrigatórios *")
-                .font(.subheadline) // REDUZIDO de .headline
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Campos de Configuração")
+                .font(.subheadline)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
             
-            VStack(spacing: 8) { // REDUZIDO de 10 para 8
-                VStack(alignment: .leading, spacing: 2) {
+            VStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Host/DNS *")
-                        .font(.caption) // REDUZIDO de .subheadline
-                        .foregroundColor(.textSecondary)
-                    TextField("Ex: seuservidor.com.br", text: $configService.config.hostDns)
-                        .textFieldStyle(CustomTextFieldStyle())
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Usuário *")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
-                    TextField("Ex: 929431775851", text: $configService.config.username)
-                        .textFieldStyle(CustomTextFieldStyle())
+                    
+                    TextField("Ex: seuservidor.com.br", text: $localHost)
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Senha *")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Usuário (opcional)")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
-                    SecureField("Ex: 028531357846", text: $configService.config.password)
-                        .textFieldStyle(CustomTextFieldStyle())
+                    
+                    TextField("Ex: 929431775851", text: $localUsername)
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                 }
                 
-                HStack(spacing: 6) { // REDUZIDO de 8 para 6
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Senha (opcional)")
+                        .font(.caption)
+                        .foregroundColor(.textSecondary)
+                    
+                    SecureField("Ex: 028531357846", text: $localPassword)
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+                
+                HStack(spacing: 6) {
                     Button(action: testConnection) {
                         HStack {
                             if isTestingConnection {
@@ -203,49 +146,58 @@ struct AdminView: View {
                     .disabled(isTestingConnection)
                     
                     Button(action: saveConfiguration) {
-                        Text("💾 Salvar")
-                            .frame(maxWidth: .infinity)
+                        HStack {
+                            if isSaving {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text("💾")
+                            }
+                            Text("Salvar")
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryButtonStyle())
+                    .disabled(isSaving)
                 }
                 
-                // Resultado do teste
                 if let testResult = testResult {
                     Text(testResult)
-                        .font(.caption2) // REDUZIDO
+                        .font(.caption2)
                         .foregroundColor(testResult.contains("✅") ? .successColor : .errorColor)
                         .padding(.top, 2)
                 }
             }
         }
-        .padding(12) // REDUZIDO de 16 para 12
-        .modifier(CardBackground())
+        .padding(12)
+        .background(Color.cardBackground)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
         .padding(.horizontal)
     }
     
-    // MARK: - Advanced Config Section (SUPER COMPACTA)
     private var advancedConfigSection: some View {
-        VStack(alignment: .leading, spacing: 8) { // REDUZIDO de 12 para 8
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("🔧")
-                    .font(.headline) // REDUZIDO
+                    .font(.headline)
                 Text("CONFIGURAÇÕES AVANÇADAS")
-                    .font(.subheadline) // REDUZIDO
+                    .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.accentBlue)
             }
             
-            VStack(spacing: 8) { // REDUZIDO de 10 para 8
-                // Formato da playlist
-                VStack(alignment: .leading, spacing: 4) { // REDUZIDO de 6 para 4
+            VStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Formato da Playlist:")
-                        .font(.caption) // REDUZIDO
+                        .font(.caption)
                         .foregroundColor(.white)
                     
                     HStack {
-                        Button(action: { configService.config.playlistFormat = "ts" }) {
+                        Button(action: { localPlaylistFormat = "ts" }) {
                             HStack {
-                                Image(systemName: configService.config.playlistFormat == "ts" ? "checkmark.circle.fill" : "circle")
+                                Image(systemName: localPlaylistFormat == "ts" ? "checkmark.circle.fill" : "circle")
                                     .foregroundColor(.primaryColor)
                                 Text("TS")
                                     .foregroundColor(.white)
@@ -255,9 +207,9 @@ struct AdminView: View {
                         
                         Spacer()
                         
-                        Button(action: { configService.config.playlistFormat = "hls" }) {
+                        Button(action: { localPlaylistFormat = "hls" }) {
                             HStack {
-                                Image(systemName: configService.config.playlistFormat == "hls" ? "checkmark.circle.fill" : "circle")
+                                Image(systemName: localPlaylistFormat == "hls" ? "checkmark.circle.fill" : "circle")
                                     .foregroundColor(.primaryColor)
                                 Text("HLS")
                                     .foregroundColor(.white)
@@ -267,38 +219,40 @@ struct AdminView: View {
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("DNS Alternativo")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
-                    TextField("Ex: servidor2.com.br", text: $configService.config.alternativeDns)
-                        .textFieldStyle(CustomTextFieldStyle())
+                    TextField("Ex: servidor2.com.br", text: $localAlternativeDns)
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Porta")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
-                    TextField("Padrão: 80", text: $configService.config.port)
-                        .textFieldStyle(CustomTextFieldStyle())
-                        .keyboardType(.numberPad)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Intervalo (min)")
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
-                    TextField("30", text: $configService.config.updateInterval)
-                        .textFieldStyle(CustomTextFieldStyle())
+                    TextField("Padrão: 80", text: $localPort)
+                        .textFieldStyle(.roundedBorder)
                         .keyboardType(.numberPad)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Reconexão Automática", isOn: $configService.config.autoReconnect)
+                    Text("Intervalo (min)")
+                        .font(.caption)
+                        .foregroundColor(.textSecondary)
+                    TextField("30", text: $localUpdateInterval)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.numberPad)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Reconexão Automática", isOn: $localAutoReconnect)
                         .foregroundColor(.white)
                         .font(.caption)
                     
-                    Toggle("Aceleração por Hardware", isOn: $configService.config.hardwareAcceleration)
+                    Toggle("Aceleração por Hardware", isOn: $localHardwareAcceleration)
                         .foregroundColor(.white)
                         .font(.caption)
                 }
@@ -315,119 +269,161 @@ struct AdminView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(SecondaryButtonStyle())
-                    
-                    Button(action: logout) {
-                        Text("🚪")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
                 }
             }
         }
-        .padding(12) // REDUZIDO de 16 para 12
-        .modifier(CardBackground())
+        .padding(12)
+        .background(Color.cardBackground)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
         .padding(.horizontal)
     }
     
-    // MARK: - Example Config Section (COMPACTA)
     private var exampleConfigSection: some View {
-        VStack(alignment: .leading, spacing: 6) { // REDUZIDO de 12 para 6
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("💡")
                     .font(.headline)
-                Text("EXEMPLO")
-                    .font(.subheadline) // REDUZIDO
+                Text("EXEMPLOS DE CONFIGURAÇÃO")
+                    .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.successColor)
             }
             
-            VStack(alignment: .leading, spacing: 4) { // REDUZIDO de 6 para 4
-                Text("Dados de Exemplo:")
-                    .font(.caption) // REDUZIDO
-                    .fontWeight(.bold)
-                    .foregroundColor(.successColor)
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("1️⃣ M3U Direto (sem usuário/senha):")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.accentBlue)
+                    
+                    Text("Host: http://exemplo.com/playlist.m3u8")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Color.backgroundDark)
+                        .cornerRadius(6)
+                }
                 
-                Text("""
-                Host: seuservidor.com.br
-                User: 123456 | Pass: 123456
-                """)
-                    .font(.system(.caption2, design: .monospaced)) // REDUZIDO
-                    .foregroundColor(.white)
-                    .padding(8) // REDUZIDO de 12 para 8
-                    .background(Color.backgroundDark)
-                    .cornerRadius(6)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("2️⃣ IPTV com credenciais:")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.accentBlue)
+                    
+                    Text("""
+                    Host: seuservidor.com.br
+                    User: 123456 | Pass: 123456
+                    """)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Color.backgroundDark)
+                        .cornerRadius(6)
+                }
                 
-                Text("URL: \(generateExampleURL())")
+                Text("URL Atual: \(generateExampleURL())")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundColor(.white)
-                    .padding(6) // REDUZIDO de 8 para 6
+                    .padding(6)
                     .background(Color.black.opacity(0.3))
                     .cornerRadius(6)
                     .lineLimit(2)
             }
         }
-        .padding(12) // REDUZIDO de 16 para 12
+        .padding(12)
         .background(Color.successColor.opacity(0.1))
         .cornerRadius(12)
         .padding(.horizontal)
     }
     
     // MARK: - Methods
-    private func authenticateUser() {
-        if username == adminUsername && password == adminPassword {
-            withAnimation {
-                isAuthenticated = true
-            }
-        } else {
-            alertMessage = "❌ Credenciais inválidas\nTente: admin / admin"
-            showingAlert = true
-            password = ""
-        }
+    private func loadLocalValues() {
+        localHost = configService.config.hostDns
+        localUsername = configService.config.username
+        localPassword = configService.config.password
+        localAlternativeDns = configService.config.alternativeDns
+        localPort = configService.config.port
+        localUpdateInterval = configService.config.updateInterval
+        localPlaylistFormat = configService.config.playlistFormat
+        localAutoReconnect = configService.config.autoReconnect
+        localHardwareAcceleration = configService.config.hardwareAcceleration
+    }
+    
+    private func saveLocalValues() {
+        configService.config.hostDns = localHost
+        configService.config.username = localUsername
+        configService.config.password = localPassword
+        configService.config.alternativeDns = localAlternativeDns
+        configService.config.port = localPort
+        configService.config.updateInterval = localUpdateInterval
+        configService.config.playlistFormat = localPlaylistFormat
+        configService.config.autoReconnect = localAutoReconnect
+        configService.config.hardwareAcceleration = localHardwareAcceleration
     }
     
     private func testConnection() {
+        guard !localHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            alertMessage = "❌ O campo Host/DNS é obrigatório"
+            showingAlert = true
+            return
+        }
+        
         isTestingConnection = true
         testResult = nil
+        saveLocalValues()
         
         Task {
             let success = await configService.testConnection()
             
-            DispatchQueue.main.async {
-                self.isTestingConnection = false
+            await MainActor.run {
+                isTestingConnection = false
                 
                 if success {
-                    self.testResult = "✅ Conexão bem-sucedida!"
+                    testResult = "✅ Conexão bem-sucedida!"
                 } else {
-                    self.testResult = "❌ Falha na conexão: \(configService.lastError ?? "Erro desconhecido")"
+                    testResult = "❌ Falha na conexão: \(configService.lastError ?? "Erro desconhecido")"
                 }
             }
         }
     }
     
     private func saveConfiguration() {
-        // Gerar URL da playlist
-        configService.generatePlaylistURL()
+        guard !localHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            alertMessage = "❌ O campo Host/DNS é obrigatório"
+            showingAlert = true
+            return
+        }
         
-        // Salvar configuração
+        isSaving = true
+        
+        print("🔧 [DEBUG] ===== INICIANDO SALVAMENTO =====")
+        print("🔧 [DEBUG] Host: \(localHost)")
+        print("🔧 [DEBUG] User: \(localUsername)")
+        
+        saveLocalValues()
+        configService.generatePlaylistURL()
         configService.saveConfiguration()
         
-        alertMessage = "✅ Configuração salva com sucesso!\nA lista de canais será atualizada."
+        isSaving = false
+        alertMessage = "✅ Configuração salva com sucesso!\n🔄 A lista de canais será atualizada automaticamente."
         showingAlert = true
         
-        // Fechar tela de admin após salvar
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             dismiss()
         }
     }
     
     private func exportConfiguration() {
+        saveLocalValues()
+        
         let config = """
         Configuração Epic Cinema Pro
         ===========================
-        Host/DNS: \(configService.config.hostDns)
-        Usuário: \(configService.config.username)
-        Formato: \(configService.config.playlistFormat)
-        Porta: \(configService.config.port)
+        Host/DNS: \(localHost)
+        Usuário: \(localUsername)
+        Formato: \(localPlaylistFormat)
+        Porta: \(localPort)
         URL Playlist: \(configService.config.playlistUrl)
         Data: \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short))
         """
@@ -439,33 +435,33 @@ struct AdminView: View {
     }
     
     private func clearCache() {
-        // Limpar cache (implementação básica)
         URLCache.shared.removeAllCachedResponses()
         
         alertMessage = "🗑️ Cache limpo com sucesso!\n📱 Espaço liberado"
         showingAlert = true
     }
     
-    private func logout() {
-        withAnimation {
-            isAuthenticated = false
-            username = ""
-            password = ""
-        }
-    }
-    
     private func generateExampleURL() -> String {
-        if configService.config.hostDns.isEmpty {
-            return "http://servidor.com/get.php?user=user&pass=pass&type=m3u_plus"
+        if localHost.isEmpty {
+            return "Configure o Host/DNS para ver a URL"
+        }
+        
+        let isDirectM3U = localHost.contains(".m3u") || localHost.contains("playlist") ||
+                         localUsername.isEmpty || localPassword.isEmpty
+        
+        if isDirectM3U {
+            return localHost
         } else {
-            configService.generatePlaylistURL()
-            return configService.config.playlistUrl
+            let baseUrl = localHost.hasPrefix("http") ? localHost : "http://\(localHost)"
+            return "\(baseUrl)/get.php?username=\(localUsername)&password=\(localPassword)&type=m3u_plus&output=\(localPlaylistFormat)"
         }
     }
 }
 
+#if DEBUG
 struct AdminView_Previews: PreviewProvider {
     static var previews: some View {
         AdminView(configService: ConfigService())
     }
 }
+#endif
